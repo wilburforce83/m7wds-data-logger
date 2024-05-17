@@ -6,6 +6,11 @@ const cors = require('cors');
 const PORT = process.env.PORT || 3000;
 const JSONdb = require("simple-json-db");
 const logGETRequests = require('./logging/requestLogger');
+const { services } = require("./services/services");
+
+
+// Start data services
+services();
 
 // Enable CORS for all routes
 app.use(cors());
@@ -56,3 +61,5 @@ app.get("/auth/data", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+

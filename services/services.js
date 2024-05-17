@@ -7,11 +7,11 @@ const db = new JSONdb("./db/db.json");
 const dbhelper = require("../db/helpers");
 const { fetchCMEData } = require("./cmeFetcher");
 
-const services = () => {
+function services () {
   //trigger your data aquisition events here and save them to the /db/db.json file with simple-json-db
   // Call fetchCMEData initially and then every 5 minutes
   fetchCMEData();
   setInterval(fetchCMEData, 300000);
 };
 
-module.exports = services;
+module.exports = { services };

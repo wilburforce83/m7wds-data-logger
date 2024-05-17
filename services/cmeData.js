@@ -31,5 +31,4 @@ async function fetchCMEData() {
     }
 }
 
-// Call the function to fetch and store CME data
-fetchCMEData();
+module.exports = { fetchCMEData };

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fetch data</title>
+</head>
+<body>
+  <h1>Check console for results</h1>
+  
+
+  <script>
+    // Function to fetch users from the API
+    async function getDB() {
+      console.log("get db has been triggered")
+      try {
+        const apiKey = "1234"; // Replace "your-api-key" with your actual API key
+        const response = await fetch('http://localhost:3000/auth/data', {
+          headers: {
+            'x-api-key': apiKey // Pass the API key in the header
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch db');
+        }
+        const users = await response.json();
+        console.log(users);
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    }
+
+    // Call the getUsers function when the page loads
+    document.addEventListener('DOMContentLoaded', getDB);
+  </script>
+</body>
+</html>

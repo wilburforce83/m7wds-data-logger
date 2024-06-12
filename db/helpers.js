@@ -1,13 +1,10 @@
 const JSONdb = require("simple-json-db");
 
-// Initialize the database
-const db = new JSONdb("data.json");
-
-
 const dbhelper = {
 // Function to add a value to an array stored in the database under a given key
-addValueToArray: (key, value, maxArrayLength) => {
+addValueToArray: (dblocation, key, value, maxArrayLength) => {
     // Retrieve the current array from the database
+    let db = new JSONdb(`./db/${dblocation}.json`);
     let array = db.get(key) || [];
 
     // Add the new value to the array
@@ -30,9 +27,10 @@ addValueToArray: (key, value, maxArrayLength) => {
 },
 
 // Function to return the latest value of a key - this helper will automatically return the latest value even if the value is an array
-returnLatestVal: (key) => {
+returnLatestVal: (dblocation, key) => {
     // Retrieve the value from the database
-    const value = db.get(key);
+    let db = new JSONdb(`./db/${dblocation}.json`);
+    let value = db.get(key);
 
     // Check if the value is an array
     if (Array.isArray(value)) {

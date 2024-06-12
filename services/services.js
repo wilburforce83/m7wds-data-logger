@@ -6,14 +6,15 @@ const JSONdb = require("simple-json-db");
 const db = new JSONdb("./db/db.json");
 const dbhelper = require("../db/helpers");
 const { fetchCMEData } = require("./cmeData");
+const { fetchBMM150Data } = require("./uTdata");
 
 function services () {
   //trigger your data aquisition events here and save them to the /db/db.json file with simple-json-db
   // Call fetchCMEData initially and then every 5 minutes
   fetchCMEData();
+  fetchBMM150Data();
   setInterval(fetchCMEData, 300000);
-
-  console.log('Data services started successfully')
+  setInterval(fetchBMM150Data, 10000);
 };
 
 module.exports = { services };

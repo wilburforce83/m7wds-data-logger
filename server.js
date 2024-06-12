@@ -20,9 +20,6 @@ app.use(logGETRequests);
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-// simple JSON data store - acts as the database
-const db = new JSONdb("./db/db.json");
-
 // Define your API key
 const apiKey = process.env.API_KEY;
 
@@ -53,6 +50,7 @@ app.get("/data", (req, res) => {
 
 // API Key route example
 app.get("/auth/data", (req, res) => {
+  let db = new JSONdb(`./db/uTdb.json`)
   let result = db.JSON(); // Example of accessing data with API key protection
   res.json(result);
 });

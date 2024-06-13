@@ -23,8 +23,8 @@
         if (!response.ok) {
           throw new Error('Failed to fetch db');
         }
-        const users = await response.json();
-        console.log(users);
+        const data = await response.json();
+        console.log(data);
       } catch (error) {
         console.error('Error:', error.message);
       }

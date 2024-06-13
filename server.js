@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 require('dotenv').config();
 const app = express();
@@ -7,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 const JSONdb = require("simple-json-db");
 const logGETRequests = require('./logging/requestLogger');
 const { services } = require("./services/services");
-
+const { removeOutliers } = require("./utils/dataProcessing"); // Import your data processing function
 
 // Start data services
 services();
@@ -20,10 +19,13 @@ app.use(logGETRequests);
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+// Serve static files from the 'public' directory
+app.use(express.static('public'));
+
 // Define your API key
 const apiKey = process.env.API_KEY;
 
-console.log('API_KEY;',apiKey);
+console.log('API_KEY:', apiKey);
 
 // Middleware to check API key
 const apiKeyMiddleware = (req, res, next) => {
@@ -37,21 +39,11 @@ const apiKeyMiddleware = (req, res, next) => {
 // Apply the API key middleware to the routes that need protection
 app.use("/auth", apiKeyMiddleware);
 
-/*
-
-// GET request to retrieve all users (unprotected)
-
-app.get("/data", (req, res) => {
-  let result = db.JSON();
-  res.json(result);
-});
-
-*/
-
 // API Key route example
 app.get("/auth/data", (req, res) => {
-  let db = new JSONdb(`./db/uTdb.json`)
+  let db = new JSONdb(`./db/uTdb.json`);
   let result = db.JSON(); // Example of accessing data with API key protection
+  result.geoData = removeOutliers(result.geoData); // Remove outliers
   res.json(result);
 });
 
@@ -59,5 +51,3 @@ app.get("/auth/data", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-

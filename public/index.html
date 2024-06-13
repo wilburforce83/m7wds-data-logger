@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geomagnetic Research Station</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .chart-container {
+      width: 60%;
+      margin-right: 20px;
+    }
+    .flex-container {
+      display: flex;
+      align-items: center;
+    }
+    .ui.medium.image {
+      width: 40%;
+    }
+  </style>
+</head>
+<body>
+  <!-- Horizontal menu -->
+  <div class="ui inverted secondary pointing menu">
+    <a class="ui item" href="index.html">Home</a>
+    <a class="ui item" href="data.html" id="data-link">Data</a>
+    <a class="ui item" href="about.html" id="about-link">About</a>
+    <a class="ui item" href="contact.html" id="contact-link">Contact</a>
+    <div class="right padded menu">
+      <div class="logo">
+        <div class="main-text">M7WDS</div>
+        <div class="sub-text">Geomagnetic Station</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content container -->
+  <div class="ui raised padded container segment" id="content-container">
+    <!-- Home page content here -->
+    <div id="home-content">
+      <h2 style="margin-top: 20px;">Welcome to M7WDS Rolvenden, Kent Geomagnetic Research Station</h2>
+      <p>Explore the latest data and research from our geomagnetic research station.</p>
+      <div class="flex-container">
+        <div class="chart-container">
+          <canvas id="geoDataChart2"></canvas>
+        </div>
+        <div class="ui bordered medium image">
+          <img src="https://services.swpc.noaa.gov/images/animations/ovation/north/latest.jpg" alt="NOAA Ovation North">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky footer -->
+  <div class="footer">
+    <p>© <span id="current-year"></span> M7WDS Rolvenden, Kent Geomagnetic Research Station</p>
+  </div>
+
+  <script>
+    $(document).ready(function() {
+      // Set the current year in the footer
+      $('#current-year').text(new Date().getFullYear());
+
+      // Load different pages dynamically
+      $('#data-link').click(function(event) {
+        event.preventDefault();
+        $('#content-container').load('data.html');
+      });
+      $('#about-link').click(function(event) {
+        event.preventDefault();
+        $('#content-container').load('about.html');
+      });
+      $('#contact-link').click(function(event) {
+        event.preventDefault();
+        $('#content-container').load('contact.html');
+      });
+
+      // Fetch and display bar chart data
+      getDB('geoDataChart2');
+      setInterval(function () {
+        getDB('geoDataChart2');
+      }, 60000);
+    });
+
+    async function getDB(chartId) {
+      console.log("get db has been triggered");
+      try {
+        const response = await fetch('http://m7wds.ddns.net/auth/data', {
+          headers: {
+            'x-api-key': '112172',
+            'Cache-Control': 'no-cache, no-store, must-revalidate', // HTTP 1.1.
+            'Pragma': 'no-cache', // HTTP 1.0.
+            'Expires': '0' // Proxies.
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch db');
+        }
+        const data = await response.json();
+        console.log(data);
+        updateBarChart(chartId, data.geoData);
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    }
+
+    function filterLast24HoursData(geoData) {
+      const now = new Date();
+      const past24Hours = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+      return geoData.filter(point => new Date(point.time) >= past24Hours);
+    }
+
+    function calculateHourlyAverages(data) {
+      let hourlySums = new Array(24).fill(0);
+      let hourlyCounts = new Array(24).fill(0);
+
+      data.forEach(point => {
+        const hour = new Date(point.time).getHours();
+        hourlySums[hour] += point.x;  // Only average the x-axis values
+        hourlyCounts[hour] += 1;
+      });
+
+      return hourlySums.map((sum, i) => sum / (hourlyCounts[i] || 1));
+    }
+
+    function adjustToPositiveScale(data) {
+      const minValue = Math.min(...data);
+      return data.map(value => value - minValue);
+    }
+
+    function updateBarChart(chartId, geoData) {
+      const filteredData = filterLast24HoursData(geoData);
+      const hourlyAverages = calculateHourlyAverages(filteredData);
+      const adjustedData = adjustToPositiveScale(hourlyAverages).reverse();
+
+      const now = new Date();
+      const labels = [];
+      for (let i = 23; i >= 0; i--) {
+        const hour = new Date(now.getTime() - (i * 60 * 60 * 1000));
+        labels.push(hour.getHours() + ":00");
+      }
+
+      const backgroundColors = adjustedData.map(value => {
+        if (value > 50) return 'rgba(121, 0, 0, 1)';
+        if (value > 20) return 'rgba(173, 143, 0, 1)';
+        return '#00b5ad';
+      });
+
+      const data = {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Relative Activity',
+            data: adjustedData,
+            backgroundColor: backgroundColors
+          }
+        ]
+      };
+
+      const config = {
+        type: 'bar',
+        data: data,
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Hour',
+                color: '#fff'
+              },
+              ticks: {
+                color: '#fff'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Δ µT',
+                color: '#fff'
+              },
+              ticks: {
+                color: '#fff'
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#fff'
+              }
+            }
+          }
+        }
+      };
+
+      let chartElement = document.getElementById(chartId);
+      if (chartElement.chart) {
+        chartElement.chart.destroy(); // Destroy existing chart before creating a new one
+      }
+
+      const ctx = chartElement.getContext('2d');
+      chartElement.chart = new Chart(ctx, config); // Create new chart instance
+    }
+  </script>
+</body>
+</html>

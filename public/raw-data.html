@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Line Chart</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="ui container">
+    <h1 class="ui header">GeoData Interactive Line Chart</h1>
+    <canvas id="geoDataChart"></canvas>
+  </div>
+
+  <script>
+    let chart; // Declare chart variable in global scope
+
+    async function getDB() {
+      console.log("get db has been triggered");
+      try {
+        const response = await fetch('http://m7wds.ddns.net/auth/data', {
+          headers: {
+            'x-api-key': '112172',
+            'Cache-Control': 'no-cache, no-store, must-revalidate', // HTTP 1.1.
+            'Pragma': 'no-cache', // HTTP 1.0.
+            'Expires': '0' // Proxies.
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch db');
+        }
+        const data = await response.json();
+        console.log(data);
+        updateChart(data.geoData);
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    }
+    setInterval(getDB, 60000);
+
+    function calculateMovingAverage(data, n = 10) {
+      let movingAverages = [];
+      for (let i = 0; i < data.length; i++) {
+        const start = Math.max(0, i - n + 1);
+        const subset = data.slice(start, i + 1);
+        const average = subset.reduce((acc, val) => acc + val, 0) / subset.length;
+        movingAverages.push(average);
+      }
+      return movingAverages;
+    }
+
+    function updateChart(geoData) {
+      const labels = geoData.map(point => new Date(point.time).toLocaleTimeString());
+      const xData = geoData.map(point => point.x);
+      const yData = geoData.map(point => point.y);
+      const zData = geoData.map(point => point.z);
+
+      const xMovingAvg = calculateMovingAverage(xData);
+      const yMovingAvg = calculateMovingAverage(yData);
+      const zMovingAvg = calculateMovingAverage(zData);
+
+      const data = {
+        labels: labels,
+        datasets: [
+          {
+            label: 'X Axis Moving Avg',
+            data: xMovingAvg,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            fill: false,
+            tension: 0.1
+          },
+          {
+            label: 'Y Axis Moving Avg',
+            data: yMovingAvg,
+            borderColor: 'rgba(255, 99, 132, 1)',
+            fill: false,
+            tension: 0.1
+          },
+          {
+            label: 'Z Axis Moving Avg',
+            data: zMovingAvg,
+            borderColor: 'rgba(153, 102, 255, 1)',
+            fill: false,
+            tension: 0.1
+          }
+        ]
+      };
+
+      const config = {
+        type: 'line',
+        data: data,
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Time'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Δ µT'
+              }
+            }
+          }
+        }
+      };
+
+      if (chart) {
+        chart.destroy(); // Destroy existing chart before creating a new one
+      }
+
+      const ctx = document.getElementById('geoDataChart').getContext('2d');
+      chart = new Chart(ctx, config); // Create new chart instance
+    }
+
+    document.addEventListener('DOMContentLoaded', getDB);
+  </script>
+</body>
+</html>

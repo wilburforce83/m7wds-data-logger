@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geomagnetic Data</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container {
+            width: 60%;
+            margin: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ui container">
+        <h2 style="margin-top: 20px;">Raw Magnetometer Data</h2>
+
+        <!-- Line Chart Container -->
+        <div class="chart-container">
+            <canvas id="geoDataChart1"></canvas>
+        </div>
+        <!-- Bar Chart Container -->
+        <div class="chart-container" style="margin-top: 40px;">
+            <canvas id="geoDataChart2"></canvas>
+        </div>
+    </div>
+
+    <script>
+        async function getDB(chartId1, chartId2) {
+            console.log("get db has been triggered");
+            try {
+                const response = await fetch('http://m7wds.ddns.net/auth/data', {
+                    headers: {
+                        'x-api-key': '112172',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate', // HTTP 1.1.
+                        'Pragma': 'no-cache', // HTTP 1.0.
+                        'Expires': '0' // Proxies.
+                    },
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch db');
+                }
+                const data = await response.json();
+               // console.log(data);
+                updateLineChart(chartId1, data.geoData);
+                updateBarChart(chartId2, data.geoData);
+            } catch (error) {
+                console.error('Error:', error.message);
+            }
+        }
+
+        function calculateMovingAverage(data, n = 10) {
+            let movingAverages = [];
+            for (let i = 0; i < data.length; i++) {
+                const start = Math.max(0, i - n + 1);
+                const subset = data.slice(start, i + 1);
+                const average = subset.reduce((acc, val) => acc + val, 0) / subset.length;
+                movingAverages.push(average);
+            }
+            return movingAverages;
+        }
+
+        function filterLast24HoursData(geoData) {
+            const now = new Date();
+            const past24Hours = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+            return geoData.filter(point => new Date(point.time) >= past24Hours);
+        }
+
+        function calculateHourlyAverages(data) {
+            let hourlySums = new Array(24).fill(0);
+            let hourlyCounts = new Array(24).fill(0);
+
+            data.forEach(point => {
+                const hour = new Date(point.time).getHours();
+                hourlySums[hour] += point.x;  // Only average the x-axis values
+                hourlyCounts[hour] += 1;
+            });
+
+            return hourlySums.map((sum, i) => sum / (hourlyCounts[i] || 1));
+        }
+
+        function adjustToPositiveScale(data) {
+            const minValue = Math.abs(Math.min(...data));
+           // console.log(minValue);
+            return data.map(value => value + minValue);
+        }
+
+        function updateLineChart(chartId, geoData) {
+            const filteredData = filterLast24HoursData(geoData);
+
+            const labels = filteredData.map(point => new Date(point.time).toLocaleTimeString());
+            const xData = filteredData.map(point => point.x);
+            const yData = filteredData.map(point => point.y);
+            const zData = filteredData.map(point => point.z);
+
+            const xMovingAvg = calculateMovingAverage(xData);
+            const yMovingAvg = calculateMovingAverage(yData);
+            const zMovingAvg = calculateMovingAverage(zData);
+
+            const data = {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'X Axis Moving Avg',
+                        data: xMovingAvg,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Y Axis Moving Avg',
+                        data: yMovingAvg,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Z Axis Moving Avg',
+                        data: zMovingAvg,
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            };
+
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time',
+                                color: '#ffffff'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Δ µT',
+                                color: '#ffffff'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    }
+                }
+            };
+
+            let chartElement = document.getElementById(chartId);
+            if (chartElement.chart) {
+                chartElement.chart.destroy(); // Destroy existing chart before creating a new one
+            }
+
+            const ctx = chartElement.getContext('2d');
+            chartElement.chart = new Chart(ctx, config); // Create new chart instance
+        }
+
+        function updateBarChart(chartId, geoData) {
+            const filteredData = filterLast24HoursData(geoData);
+            const hourlyAverages = calculateHourlyAverages(filteredData);
+            const adjustedData = adjustToPositiveScale(hourlyAverages).reverse();
+           //console.log(hourlyAverages);
+           // console.log(adjustedData);
+
+            const now = new Date();
+            const labels = [];
+            for (let i = 23; i >= 0; i--) {
+                const hour = new Date(now.getTime() - (i * 60 * 60 * 1000));
+                labels.push(hour.getHours() + ":00");
+            }
+
+            const backgroundColors = adjustedData.map(value => {
+                if (value > 8) return 'rgba(121, 0, 0, 1)';
+                if (value > 6) return 'rgba(173, 143, 0, 1)';
+                return 'rgba(68, 103, 32, 1)';
+            });
+
+            const data = {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Relative activity',
+                        data: adjustedData,
+                        backgroundColor: backgroundColors
+                    }
+                ]
+            };
+
+            const config = {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hour',
+                                color: '#ffffff'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Δ µT',
+                                color: '#ffffff'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            max: 6
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    }
+                }
+            };
+
+            let chartElement = document.getElementById(chartId);
+            if (chartElement.chart) {
+                chartElement.chart.destroy(); // Destroy existing chart before creating a new one
+            }
+
+            const ctx = chartElement.getContext('2d');
+            chartElement.chart = new Chart(ctx, config); // Create new chart instance
+        }
+
+        $(document).ready(function () {
+            getDB('geoDataChart1', 'geoDataChart2');
+            setInterval(function () {
+                getDB('geoDataChart1', 'geoDataChart2');
+            }, 60000);
+        });
+    </script>
+</body>
+
+</html>

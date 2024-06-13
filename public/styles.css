@@ -1,0 +1,93 @@
+/* Apply Special Elite to all elements */
+body, h1, h2, h3, h4, h5, h6, p, a, span, div, input, button, textarea, select, label {
+    font-family: 'Special Elite', cursive !important;
+  }
+  
+  /* General body styles */
+  body {
+    background-color: #121212; /* Dark background */
+    color: #00b5ad; /* Light text */
+    margin: 0;
+    padding-bottom: 80px; /* Add space for the footer */
+  }
+
+  .chart-container {
+    margin-top: 20px;
+  }
+  
+  /* Menu styles */
+  .ui.secondary.pointing.menu {
+    background-color: #1f1f1f; /* Soft dark background */
+    color: #00b5ad; /* Vibrant text color */
+    padding-top: 10px;
+    padding-right: 10px;
+  }
+  .ui.secondary.pointing.menu a.item {
+    color: #00b5ad !important; /* Vibrant text color */
+  }
+  .ui.secondary.pointing.menu a.item:hover {
+    background-color: #333; /* Darker hover background */
+  }
+  
+  /* Container styles */
+  .container {
+    margin-top: 20px;
+  }
+  .ui.raised.padded.container.segment {
+    background-color: #1e1e1e !important; /* Darker container background */
+    color: #00b5ad !important; /* Light text */
+  }
+  
+  /* Logo styles */
+  .logo {
+    font-family: 'Special Elite', cursive;
+    color: #00b5ad; /* Vibrant text color */
+    text-align: center;
+    padding-bottom: 10px;
+  }
+  .logo .main-text {
+    font-size: 1.5em;
+  }
+  .logo .sub-text {
+    font-size: 0.8em;
+    font-weight: 300;
+  }
+  
+  /* Footer styles */
+  .footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: #1f1f1f; /* Soft dark background */
+    color: #00b5ad; /* Vibrant text color */
+    text-align: center;
+    padding: 10px 0;
+  }
+  .footer .logo {
+    font-weight: 300;
+  }
+  
+  /* Ensure form elements use Special Elite */
+  .ui.form input, .ui.form textarea, .ui.form select {
+    font-family: 'Special Elite', cursive !important;
+  }
+
+  .chart-container {
+    width: 60%;
+    margin: auto;
+}
+  
+  /* Override specific Semantic UI components if necessary */
+  .ui.button {
+    font-family: 'Special Elite', cursive !important;
+  }
+  .ui.header {
+    font-family: 'Special Elite', cursive !important;
+  }
+  .ui.message {
+    font-family: 'Special Elite', cursive !important;
+  }
+  .ui.menu {
+    font-family: 'Special Elite', cursive !important;
+  }
+  
